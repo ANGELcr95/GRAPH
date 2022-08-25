@@ -1,4 +1,5 @@
-import { gql, ApolloServer } from "apollo-server" 
+import { gql, ApolloServer,  UserInputError } from "apollo-server" 
+import { v4 as uuidv4 } from 'uuid';
 
 // los datos
 const persons = [
@@ -43,7 +44,16 @@ const typeDefinitions = gql`
         allPersons: [Person]!
         findPerson(name: String!): Person
     }
-`
+    
+    type Mutation {
+        addPerson(
+            name: String!
+            phone: String
+            street: String!
+            city: String!
+        ): Person
+    }
+`  // cuando anadamos la persona lo que va a hacer es restornar la persona
 // estamos tal cual resoviendo los tipos  de datos que definimos
 const resolvers = {
     Query: {
@@ -54,7 +64,22 @@ const resolvers = {
             return persons.find((person) => person.name === name)
         }
     }, 
+    Mutation:{
+        addPerson: ( root, args ) => {
 
+            if (persons.find((person) => person.name === args.name)){
+                // throw new Error(`person ${args.name} already exists`) // es una forma de hacer un error
+                throw new UserInputError(`Name must be unique`, {
+                    invalidArgs: args.name
+                }); 
+
+            }
+            // const { name, phone, street, city } = args 
+            const person = { ...args, id: uuidv4()}
+            persons.push(person)
+            return person
+        }    
+    },
     Person: {
         // canDrink: (root) => root.age > 18 ,
         // allStreet: (root) => `${root.street} - ${root.city}`, un ejmlpo de como puedo hacer calculos indexando en un type antes previamente extrayendolo
