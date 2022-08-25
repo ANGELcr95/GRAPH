@@ -26,6 +26,16 @@ const persons = [
 ]
 // aqui describimos los tipos de datos
 const typeDefinitions = gql`
+    enum YesNo {
+        YES
+        NO
+    }
+
+    enum NoteStatus {
+        BLOCKED
+        PROGRESS
+        RESOLVED
+    }
 
     type Address {
         street: String!
@@ -41,7 +51,7 @@ const typeDefinitions = gql`
 
     type Query {
         personCount: Int!
-        allPersons: [Person]!
+        allPersons( phone: YesNo ): [Person]!
         findPerson(name: String!): Person
     }
     
@@ -52,13 +62,22 @@ const typeDefinitions = gql`
             street: String!
             city: String!
         ): Person
+        editNumber(
+            name: String!
+            phone: String
+        ):Person
     }
 `  // cuando anadamos la persona lo que va a hacer es restornar la persona
 // estamos tal cual resoviendo los tipos  de datos que definimos
 const resolvers = {
     Query: {
         personCount: () => persons.length,
-        allPersons: () => persons,
+        allPersons: ( root, args ) => {
+            if (!args.phone) return persons //los enum srive principalmete paara poder definir valores y definir por medio de estado ya redifinidos 
+            return persons.filter( person => {
+                return args.phone ==="YES" ? person.phone : !person.phone 
+            })
+        },
         findPerson:( root, args ) => { // colocar la logica para poder definir resoler los tipos de datos qu e defini, root corresponde al objeto que hizo match
             const { name } = args // simpre los argumentos hay que desectructurarlos
             return persons.find((person) => person.name === name)
@@ -78,7 +97,19 @@ const resolvers = {
             const person = { ...args, id: uuidv4()}
             persons.push(person)
             return person
-        }    
+        },
+        editNumber : ( root, args ) => { // editando type person y de la data 
+            const personIndex = persons.findIndex((person) => person.name === args.name)
+            if (!personIndex === -1) return null
+
+            const person = persons[personIndex]
+
+            const updatedPerson = { ...person, phone: args.phone }
+            persons[personIndex] = updatedPerson
+
+            return updatedPerson
+
+        }
     },
     Person: {
         // canDrink: (root) => root.age > 18 ,
